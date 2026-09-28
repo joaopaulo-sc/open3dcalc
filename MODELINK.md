@@ -110,3 +110,8 @@ O servidor aplica essa lista; chave fora dela → 400.
   dados. Testes do fork rodam em `node:22-slim` com volume `o3c_node_modules`.
 - Pendências conhecidas p/ Fase 4: banner de privacidade diz "dados só no navegador";
   `favicon.png` referenciado não existe (upstream).
+- 2026-09-28: **Deploy feito** (antes das fases 3/4) em https://calc.modelink3d.link.
+  VM: swap 2 GB em `/swapfile` (fstab) + `vm.swappiness=10` (`/etc/sysctl.d/99-swappiness.conf`).
+  Compose em `~/modelink-calc/` na VM; volume `modelink_calc_data`; container ~55 MB.
+  Traefik só roteia depois do healthcheck ficar `healthy` (~30 s de 404 a cada deploy).
+  Fase 5 parcial: falta GH Actions → GHCR (hoje: `docker save | ssh docker load`).
