@@ -7,7 +7,7 @@ import './index.css'
 const SERVER_MODE = import.meta.env.VITE_CALC_SERVER === '1'
 
 async function render(): Promise<void> {
-  const [{ default: React }, { default: ReactDOM }, { default: App }, { initTheme }] =
+  const [{ default: React }, { default: ReactDOM }, { default: App }, { initTheme }, { default: i18n }] =
     await Promise.all([
       import('react'),
       import('react-dom/client'),
@@ -15,6 +15,11 @@ async function render(): Promise<void> {
       import('@/shared/hooks/useTheme'),
       import('@/shared/i18n/i18n'),
     ])
+
+  if (SERVER_MODE) {
+    const { applyServerModeTexts } = await import('./sync/i18nOverrides')
+    applyServerModeTexts(i18n)
+  }
 
   // Initialize theme BEFORE React renders to prevent flash of wrong theme.
   initTheme()
