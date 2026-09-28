@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0f14" />
+    <title>Entrar · Calculadora ModelInk3D</title>
+    <link rel="icon" type="image/png" href="/_login/logo.png" />
+    <link rel="stylesheet" href="/_login/login.css" />
+  </head>
+  <body>
+    <main class="card">
+      <img class="logo" src="/_login/logo.png" alt="ModelInk3D" width="676" height="369" />
+      <h1>Calculadora &amp; gestão</h1>
+      <form id="login-form" novalidate>
+        <label for="username">Usuário</label>
+        <input id="username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus />
+        <label for="password">Senha</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required />
+        <p id="error" class="error" role="alert" hidden></p>
+        <button type="submit" id="submit">Entrar</button>
+      </form>
+    </main>
+    <script src="/_login/login.js" defer></script>
+  </body>
+</html>
