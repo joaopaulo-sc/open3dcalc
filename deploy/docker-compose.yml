@@ -1,0 +1,39 @@
+# Calculadora ModelInk3D em calc.modelink3d.link
+#
+# Roda na mesma VM do modelink3d-app e usa o Traefik dele (rede modelink_net).
+# TLS: Cloudflare modo "Full" -> Traefik (autoassinado) -> este container.
+#
+#   docker compose -f docker-compose.yml up -d
+#
+# A imagem modelink-calc:latest é gerada FORA da VM (ver README.md).
+
+services:
+  calc:
+    image: modelink-calc:latest
+    container_name: modelink_calc
+    restart: unless-stopped
+    environment:
+      CALC_PUBLIC_ORIGIN: https://calc.modelink3d.link
+      # Cloudflare + Traefik na frente.
+      CALC_TRUST_PROXY_HOPS: "2"
+    volumes:
+      - calc_data:/data
+    # VM de 1 GB: teto para não derrubar o resto se algo fugir do controle.
+    mem_limit: 256m
+    networks:
+      - modelink_net
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=modelink_net
+      - traefik.http.routers.calc.rule=Host(`calc.modelink3d.link`)
+      - traefik.http.routers.calc.entrypoints=websecure
+      - traefik.http.routers.calc.tls=true
+      - traefik.http.services.calc.loadbalancer.server.port=8080
+
+volumes:
+  calc_data:
+    name: modelink_calc_data
+
+networks:
+  modelink_net:
+    external: true

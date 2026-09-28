@@ -1,0 +1,11 @@
+.git
+node_modules
+dist
+dist-web
+dist-electron
+electron/dist
+coverage
+server/node_modules
+server/data
+deploy
+*.log
