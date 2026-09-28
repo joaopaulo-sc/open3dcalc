@@ -24,6 +24,11 @@ export default defineConfig(
         registerType: "autoUpdate",
         workbox: {
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+          // Fork ModelInk3D: login e API são do servidor. Sem isto o SW
+          // responderia /login com o index.html do cache (loop de redirect).
+          navigateFallbackDenylist: [/^\/login/, /^\/_login\//, /^\/api\//],
+          // O build gera index.web.html (é ele que vai para o precache).
+          navigateFallback: "index.web.html",
         },
         manifest: {
           name: "Open3DCalc - Calculadora 3D Livre",
@@ -44,6 +49,18 @@ export default defineConfig(
         },
       }),
     ],
+    // Fork ModelInk3D: servido na raiz do domínio pelo server/, assets absolutos.
+    ...(process.env.VITE_CALC_SERVER === "1" ? { base: "/" } : {}),
+    // `npm run dev:web` com VITE_CALC_SERVER=1 conversa com o server/ local
+    // (npm start em server/, porta 8080).
+    server: {
+      proxy: Object.fromEntries(
+        ["/api", "/login", "/_login"].map((prefix) => [
+          prefix,
+          { target: "http://localhost:8080", changeOrigin: false },
+        ]),
+      ),
+    },
     build: {
       outDir: "dist-web",
       emptyOutDir: true,

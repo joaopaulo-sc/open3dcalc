@@ -41,6 +41,13 @@ export default defineConfig([
     },
   },
   {
+    // Fork ModelInk3D: servidor Node (server/).
+    files: ["server/**/*.ts"],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
+  {
     files: ["scripts/**/*.mjs"],
     extends: [js.configs.recommended],
     languageOptions: {

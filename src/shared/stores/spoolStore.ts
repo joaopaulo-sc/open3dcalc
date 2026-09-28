@@ -190,7 +190,7 @@ const migrateSpool = (s: Record<string, unknown>): FilamentSpool => ({
   tareGrams: typeof s.tareGrams === "number" ? s.tareGrams : undefined,
 });
 
-const loadSpools = (): FilamentSpool[] => {
+export const loadSpools = (): FilamentSpool[] => {
   if (typeof window === "undefined") return [];
   try {
     const saved = guardedStorage.getItem(SPOOLS_KEY);

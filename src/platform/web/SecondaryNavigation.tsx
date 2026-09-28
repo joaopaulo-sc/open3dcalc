@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { BookOpen, Info } from "lucide-react";
 import { BrandIcon } from "./BrandIcon";
+import { SessionPanel } from "./sync/SessionPanel";
 
 type SecondaryNavigationProps = {
   onInternalNavigate: (tab: "wiki" | "changelog") => void;
@@ -32,6 +33,7 @@ export function SecondaryNavigation({
           : "pt-3 mt-2 border-t border-[var(--color-border)]"
       }
     >
+      <SessionPanel desktop={desktop} />
       <p
         className={
           desktop

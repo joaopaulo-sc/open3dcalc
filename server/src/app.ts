@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import cookie from "@fastify/cookie";
@@ -115,13 +116,15 @@ export async function buildApp(opts: { db: Db; config: Config; logger?: boolean 
         reply.header("Cache-Control", immutable ? "public, max-age=31536000, immutable" : "no-cache");
       },
     });
+    // O build web do open3dcalc gera index.web.html; aceita os dois nomes.
+    const indexFile = existsSync(path.join(staticDir, "index.html")) ? "index.html" : "index.web.html";
     app.get("/", async (_request, reply) =>
-      reply.header("Cache-Control", "no-cache").sendFile("index.html", staticDir),
+      reply.header("Cache-Control", "no-cache").sendFile(indexFile, staticDir),
     );
-    // SPA: qualquer GET que não seja API nem arquivo existente cai no index.html.
+    // SPA: qualquer GET que não seja API nem arquivo existente cai no index.
     app.setNotFoundHandler(async (request, reply) => {
       if (request.method === "GET" && !request.url.startsWith("/api/") && wantsHtml(request)) {
-        return reply.header("Cache-Control", "no-cache").sendFile("index.html", staticDir);
+        return reply.header("Cache-Control", "no-cache").sendFile(indexFile, staticDir);
       }
       return reply.code(404).send({ error: "Não encontrado" });
     });

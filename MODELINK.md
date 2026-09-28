@@ -48,8 +48,8 @@ navegador ── PUT direto (resumable) ──▶ Google Drive   (upload não pa
 
 | Escopo | Chaves |
 |--------|--------|
-| **Compartilhado** (a farm) | settings_v2, history_v2, customers_v1, quotes_v1, catalog_v1, filaments, color_palette_v1, products, dashboard_v1, dashboard_goal |
-| **Por usuário** | theme, sections, layout_v1, consent_v1, tutorial_v1, onboarded, quickstart_dismissed, share_prefs_v1, model_comparison, marketplace_comparison_v1, i18nextLng |
+| **Compartilhado** (a farm) | history_v2, customers_v1, quotes_v1, catalog_v1, filaments, color_palette_v1, products, dashboard_v1, dashboard_goal |
+| **Por usuário** | settings_v2 (rascunho do cálculo em andamento), theme, sections, layout_v1, consent_v1, tutorial_v1, onboarded, quickstart_dismissed, share_prefs_v1, model_comparison, marketplace_comparison_v1, i18nextLng |
 | **Só local** (não sincroniza) | erasure_*, migration_done_v2, chaves de staging/diagnóstico |
 
 O servidor aplica essa lista; chave fora dela → 400.
@@ -87,7 +87,7 @@ O servidor aplica essa lista; chave fora dela → 400.
 | # | Entrega | Status |
 |---|---------|--------|
 | 1 | `server/`: login, sessões, usuários (CLI), KV versionado, serve estáticos | ✅ |
-| 2 | Front: sync web (boot, push, merge, pull), tela de login, logout/usuário no menu, PWA sem cachear `/login` e `/api` | próxima |
+| 2 | Front: sync web (boot, push, merge, pull), tela de login, logout/usuário no menu, PWA sem cachear `/login` e `/api` | ✅ |
 | 3 | Drive: script de autorização OAuth, upload resumable + download proxy, campo de arquivo em Produtos/Orçamentos, backup do SQLite | — |
 | 4 | Marca: logo, paleta grafite + ciano, nome/ícones do PWA | — |
 | 5 | Deploy: Dockerfile multi-stage, GH Actions → GHCR, compose, DNS `calc` na Cloudflare, runbook | — |
@@ -99,3 +99,14 @@ O servidor aplica essa lista; chave fora dela → 400.
 - 2026-09-28: Fase 1 feita. `server/` roda em Node 24 com type-stripping (sem build),
   `node:sqlite` (sem módulo nativo), Fastify. 13 testes (`npm test` dentro de
   `node:24-alpine`), ~65 MB RSS. Usuários via `npm run users -- add|passwd|list|disable`.
+- 2026-09-28: Fase 2 feita. `src/platform/web/sync/` (keys, api, merge, engine, rehydrate,
+  SessionPanel) + gancho `setStorageWriteListener` em `manifestStorage.ts`. Ativado só com
+  `VITE_CALC_SERVER=1` no build (sem a flag, comportamento do upstream). Fixes no caminho:
+  migração legada apagava `open3dcalc_products` (formato novo) em todo boot com histórico
+  vazio; SW com fallback `index.html` inexistente no precache. Regras que protegem dados:
+  só sobe chave gravada via manifestStorage (limpar localStorage nunca vira exclusão no
+  servidor); logout deixa marcador `calc_sync_user=logged-out`. E2E (Chrome headless):
+  login, sync entre 2 usuários sem reload, conflito simultâneo mesclado, logout sem vazar
+  dados. Testes do fork rodam em `node:22-slim` com volume `o3c_node_modules`.
+- Pendências conhecidas p/ Fase 4: banner de privacidade diz "dados só no navegador";
+  `favicon.png` referenciado não existe (upstream).

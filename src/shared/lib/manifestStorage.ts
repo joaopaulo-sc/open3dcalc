@@ -67,6 +67,18 @@ export function isDemoPersistenceSuppressed(): boolean {
   return demoPersistenceSuppressed;
 }
 
+/**
+ * Observador de gravações (fork ModelInk3D): o sync web usa para enviar ao
+ * servidor cada chave que um store gravou ou removeu. Chamado depois da
+ * escrita no backing store; nunca em modo demo nem para chave negada.
+ */
+export type StorageWriteListener = (key: string, value: string | null) => void;
+let writeListener: StorageWriteListener | null = null;
+
+export function setStorageWriteListener(listener: StorageWriteListener | null): void {
+  writeListener = listener;
+}
+
 function rawStorage(): StateStorage {
   if (typeof window === "undefined" || !window.localStorage) {
     return {
@@ -92,11 +104,13 @@ function gatedStateStorage(): StateStorage {
       if (demoPersistenceSuppressed) return;
       if (!checkKey(name).allowed) return;
       backing.setItem(name, value);
+      writeListener?.(name, value);
     },
     removeItem: (name) => {
       if (demoPersistenceSuppressed) return;
       if (!checkKey(name).allowed) return;
       backing.removeItem(name);
+      writeListener?.(name, null);
     },
   };
 }
@@ -130,12 +144,14 @@ export const guardedStorage = {
     const backing = rawStorage();
     if (!checkKey(key).allowed) return;
     backing.setItem(key, value);
+    writeListener?.(key, value);
   },
   removeItem(key: string): void {
     if (demoPersistenceSuppressed) return;
     const backing = rawStorage();
     if (!checkKey(key).allowed) return;
     backing.removeItem(key);
+    writeListener?.(key, null);
   },
 };
 

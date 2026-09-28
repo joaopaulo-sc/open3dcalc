@@ -9,7 +9,6 @@ import { transaction, type Db } from "./db.ts";
  */
 export const KEY_SCOPES = {
   // Dados da farm — iguais para todos os usuários.
-  open3dcalc_settings_v2: "shared",
   open3dcalc_history_v2: "shared",
   open3dcalc_customers_v1: "shared",
   open3dcalc_quotes_v1: "shared",
@@ -19,7 +18,9 @@ export const KEY_SCOPES = {
   open3dcalc_products: "shared",
   open3dcalc_dashboard_v1: "shared",
   open3dcalc_dashboard_goal: "shared",
-  // Preferências — cada usuário tem as suas.
+  // Preferências — cada usuário tem as suas. settings_v2 é o rascunho do
+  // cálculo em andamento, não configuração da farm.
+  open3dcalc_settings_v2: "user",
   open3dcalc_theme: "user",
   open3dcalc_sections: "user",
   open3dcalc_layout_v1: "user",

@@ -28,7 +28,7 @@ const migrateColor = (c: Record<string, unknown>): CustomColor => ({
   hex: (c.hex as string) || "#6366f1",
 });
 
-const loadColors = (): CustomColor[] => {
+export const loadColors = (): CustomColor[] => {
   if (typeof window === "undefined") return [];
   try {
     const saved = guardedStorage.getItem(COLOR_PALETTE_KEY);

@@ -51,6 +51,8 @@ export default defineConfig(
         // future `*.browser.test.tsx` cannot fall into the jsdom suite.
         "src/**/*.browser.test.ts",
         "src/**/*.browser.test.tsx",
+        // Fork ModelInk3D: o servidor tem suíte própria (node:test).
+        "server/**",
       ],
       coverage: {
         provider: "v8",
