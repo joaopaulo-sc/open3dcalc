@@ -72,7 +72,7 @@ function PasswordForm({ onDone }: { onDone: () => void }): React.ReactElement {
         <button
           type="submit"
           disabled={busy}
-          className="flex-1 rounded-lg bg-[var(--color-accent)] px-3 py-2 text-sm font-medium text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-50"
+          className="flex-1 rounded-lg bg-[var(--color-accent)] px-3 py-2 text-sm font-medium text-[var(--color-text-inverse)] hover:bg-[var(--color-accent-hover)] disabled:opacity-50"
         >
           Salvar
         </button>
@@ -110,7 +110,7 @@ export function SessionPanel({ desktop = false }: { desktop?: boolean }): React.
       <div className={`flex items-center gap-3 ${desktop ? "px-3" : "px-4"} py-2`}>
         <span
           aria-hidden="true"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-sm font-bold text-white"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-sm font-bold text-[var(--color-text-inverse)]"
         >
           {initials(user.displayName)}
         </span>
