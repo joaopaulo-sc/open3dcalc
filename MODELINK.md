@@ -4,8 +4,10 @@ Fork de [ils15/open3dcalc](https://github.com/ils15/open3dcalc) rodando como app
 multiusuário em `calc.modelink3d.link`, na mesma VM Oracle (AMD, 2 vCPU, 1 GB RAM)
 que já roda o modelink3d-app (landing + vitrine continuam lá, intocados).
 
-Branch: `feat/modelink-server`. Rascunho anterior (upload direto com chave no bundle)
-guardado em `git stash list` → "rascunho upload gdrive".
+Branches: `feat/modelink-server` = o que roda em produção hoje (upstream beta.3);
+`rebase/upstream-beta9` = upstream beta.9 + cofre de PII adaptado, testado, **pronto para
+publicar** (ver Registro 2026-10-01). Rascunho antigo de upload com chave no bundle:
+patch em `~/modelink-backups/open3dcalc-stash-rascunho-upload-gdrive.patch` (só referência).
 
 ## Objetivos
 
@@ -76,11 +78,67 @@ O servidor aplica essa lista; chave fora dela → 400.
 
 ### Deploy (1 GB RAM)
 
-- **Não buildar na VM** (Vite + three.js estoura 1 GB). A imagem é gerada no GitHub
-  Actions → GHCR (amd64); a VM só faz `docker compose pull && up -d`.
-- Compose próprio (`deploy/docker-compose.yml`) entra na rede externa `modelink_net`
-  do Traefik existente. TLS igual ao resto: Cloudflare Full, `tls=true` sem ACME.
-- Recomendado: swapfile de 2 GB na VM.
+- **Não buildar na VM** (Vite + three.js estoura 1 GB e pode travar a máquina). A imagem
+  é gerada na máquina de dev e enviada pronta por `docker save | ssh docker load`.
+  (GitHub Actions → GHCR seria o próximo passo, ainda não existe.)
+- Compose próprio (`deploy/docker-compose.yml`, cópia em `~/modelink-calc/` na VM) entra
+  na rede externa `modelink_net` do Traefik do modelink3d-app. TLS igual ao resto:
+  Cloudflare Full, `tls=true` sem ACME. Dados no volume `modelink_calc_data`.
+- VM com swap de 2 GB (feito).
+
+## Publicar uma atualização
+
+Na máquina de dev (bash ou zsh), na raiz do fork. A função `vm` evita o problema de
+`SSH="ssh …"; $SSH` não funcionar no zsh.
+
+```bash
+vm() { ssh -i ~/.ssh/modelink-oracle-instance.key ubuntu@129.158.229.186 "$@"; }
+cd ~/antigravity/open3dcalc
+
+# 1. Branch a publicar, sem alterações pendentes
+git switch rebase/upstream-beta9
+git status --short            # tem que sair vazio
+
+# 2. Build local (~2 min). O Dockerfile já liga VITE_CALC_SERVER=1.
+docker build -t modelink-calc:latest .
+
+# 3. Backup do banco de produção para o seu PC
+vm 'docker exec modelink_calc node --disable-warning=ExperimentalWarning -e "new (require(\"node:sqlite\").DatabaseSync)(\"/data/calc.sqlite\").exec(\"VACUUM INTO \x27/tmp/snap.sqlite\x27\")" && docker exec modelink_calc cat /tmp/snap.sqlite && docker exec modelink_calc rm /tmp/snap.sqlite' > ~/modelink-backups/calc-$(date +%F).sqlite
+ls -la ~/modelink-backups/calc-$(date +%F).sqlite   # ~45 KB, não pode ser 0
+
+# 4. Guarda a imagem em produção como :prev (rollback)
+vm 'docker tag modelink-calc:latest modelink-calc:prev'
+
+# 5. Envia a imagem (~300 MB, alguns minutos)
+docker save modelink-calc:latest | gzip | vm 'gunzip | docker load'
+
+# 6. Atualiza o compose e recria o container (~30 s de 404 até o healthcheck)
+scp -i ~/.ssh/modelink-oracle-instance.key deploy/docker-compose.yml ubuntu@129.158.229.186:~/modelink-calc/
+vm 'cd ~/modelink-calc && docker compose up -d && docker image prune -f'
+
+# 7. Verifica
+vm 'docker ps --filter name=modelink_calc; docker logs --tail 20 modelink_calc'
+curl -s -o /dev/null -w "%{http_code}\n" https://calc.modelink3d.link/login   # 200
+```
+
+Depois: cada usuário recarrega a página (o PWA pode segurar a versão antiga até o reload).
+
+**Rollback** (volta a imagem anterior; os dados do volume não mudam):
+
+```bash
+vm 'docker tag modelink-calc:prev modelink-calc:latest && cd ~/modelink-calc && docker compose up -d --force-recreate'
+```
+
+Se os dados ficarem inconsistentes, restaurar o backup do passo 3:
+
+```bash
+vm 'docker stop modelink_calc'
+cat ~/modelink-backups/calc-AAAA-MM-DD.sqlite | vm 'docker run --rm -i -v modelink_calc_data:/data alpine sh -c "rm -f /data/calc.sqlite-wal /data/calc.sqlite-shm && cat > /data/calc.sqlite && chown 1000:1000 /data/calc.sqlite"'
+vm 'docker start modelink_calc'
+```
+
+Usuários: `ssh -t -i ~/.ssh/modelink-oracle-instance.key ubuntu@129.158.229.186 docker exec -it modelink_calc npm run users -- add <usuario> --name "Nome"`
+(também `list`, `passwd`, `disable`, `enable`; senha mínima 10 caracteres).
 
 ## Fases
 
@@ -139,5 +197,4 @@ O servidor aplica essa lista; chave fora dela → 400.
   E2E com 2 navegadores isolados contra a imagem (também sobre cópia dos dados de
   produção): cliente criado por um usuário aparece para outro ao vivo e após reload,
   sem IndexedDB do cofre e sem gravações extras no KV. Imagem local `modelink-calc:rebase`.
-  **Ainda não deployado.** Quando for: `docker tag modelink-calc:rebase modelink-calc:latest`
-  e seguir `deploy/README.md`; depois cada usuário recarrega a página.
+  **Ainda não deployado.** Para publicar: seção "Publicar uma atualização" acima.
