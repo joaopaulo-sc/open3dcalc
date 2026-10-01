@@ -115,3 +115,14 @@ O servidor aplica essa lista; chave fora dela → 400.
   Compose em `~/modelink-calc/` na VM; volume `modelink_calc_data`; container ~55 MB.
   Traefik só roteia depois do healthcheck ficar `healthy` (~30 s de 404 a cada deploy).
   Fase 5 parcial: falta GH Actions → GHCR (hoje: `docker save | ssh docker load`).
+- 2026-10-01: tentativa de rebase no upstream (fork `main` puxou beta.4→beta.9).
+  **Bloqueio:** desde `1b7b885` (Beta 5 privacy) os stores `open3dcalc_customers_v1`,
+  `open3dcalc_quotes_v1` e `open3dcalc_history_v2` persistem num cofre IndexedDB
+  cifrado com senha por navegador (`src/shared/lib/crypto/piiStore*.ts`,
+  `gatedPiiPersistStorage`, `PiiLockedShell`) — não passam mais pelo
+  `manifestStorage`, então **não sincronizariam** com o servidor e pediriam senha
+  em cada máquina. Precisa de adaptação no modo servidor antes de qualquer deploy.
+  Rebase resolvido (sem o cofre adaptado) guardado no branch `rebase/upstream-beta9`,
+  base `17953c9`. O commit seguinte do upstream, `72e7097` ("add AI capabilities"),
+  apaga o `package-lock.json` e cria árvores paralelas (`src/context`, `src/data`,
+  `src/utils`) — evitar como base até o upstream estabilizar.
