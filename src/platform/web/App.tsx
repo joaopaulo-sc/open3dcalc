@@ -61,9 +61,16 @@ function AppContent(): React.ReactElement {
       {!focusMode && <Header />}
       <DemoModeIndicator />
       <DemoExportBlockedToast />
-      <PrivacyOnboarding />
-      <LegacyMigrationPrompt />
-      <PiiLockedShell />
+      {/* Fork ModelInk3D: no modo servidor não há cofre por navegador nem
+          "dados só neste dispositivo" — consentimento, migração legada e a
+          tela de senha do cofre não se aplicam. */}
+      {import.meta.env.VITE_CALC_SERVER !== "1" && (
+        <>
+          <PrivacyOnboarding />
+          <LegacyMigrationPrompt />
+          <PiiLockedShell />
+        </>
+      )}
 
       <div className="flex flex-1 w-full max-w-[1600px] 2xl:max-w-[1920px] mx-auto overflow-x-clip">
         <AppShell

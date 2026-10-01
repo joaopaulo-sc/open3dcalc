@@ -385,6 +385,33 @@ function runObserved<T>(key: string, run: () => Promise<T>): Promise<T> {
 //  The gated persist storage
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+//  Fork ModelInk3D: plain persistence in server mode
+// ---------------------------------------------------------------------------
+
+/** Same shape as `manifestStorage` — injected so this file stays vault-only. */
+export type PlainPiiStorageFactory = <S>() => PersistStorage<S, unknown> | undefined;
+
+let plainPiiStorage: PlainPiiStorageFactory | null = null;
+
+/**
+ * Fork ModelInk3D: with `VITE_CALC_SERVER=1` the web build runs behind the
+ * multi-user server, which syncs every `manifestStorage` write across devices.
+ * The per-browser vault would keep customers/quotes/history on one machine and
+ * ask for a passphrase on each, so in that mode the three stores persist
+ * through `manifestStorage` again (their pre-vault storage). Everything else is
+ * unchanged: `skipHydration`, the hydration gate and `rehydratePiiStores()`.
+ * Must be called before the stores first rehydrate (web `main.tsx` boot).
+ */
+export function enablePlainPiiPersistence(factory: PlainPiiStorageFactory): void {
+  plainPiiStorage = factory;
+}
+
+/** True when the three PII stores persist through `manifestStorage`. */
+export function isPlainPiiPersistence(): boolean {
+  return plainPiiStorage !== null;
+}
+
 /**
  * The vault-backed storage a migrated store drops into `persist({...})`.
  *
@@ -417,12 +444,25 @@ export function gatedPiiPersistStorage<S>(
     }
   }
 
+  function plain(): PersistStorage<S, unknown> | undefined {
+    return plainPiiStorage?.<S>();
+  }
+
   return {
     getItem(_name: string): Promise<StorageValue<S> | null> {
+      const storage = plain();
+      if (storage) return Promise.resolve(storage.getItem(key));
       return runObserved(key, async () => vault().getItem(_name));
     },
 
     setItem(_name: string, value: StorageValue<S>): Promise<void> {
+      const storage = plain();
+      if (storage) {
+        return runObserved(key, async () => {
+          requireHydrated();
+          await storage.setItem(key, value);
+        });
+      }
       return runObserved(key, async () => {
         requireHydrated();
         try {
@@ -435,6 +475,13 @@ export function gatedPiiPersistStorage<S>(
     },
 
     removeItem(_name: string): Promise<void> {
+      const storage = plain();
+      if (storage) {
+        return runObserved(key, async () => {
+          requireHydrated();
+          await storage.removeItem(key);
+        });
+      }
       return runObserved(key, async () => {
         requireHydrated();
         try {
@@ -582,6 +629,7 @@ export async function rehydratePiiStoresIfUnlocked(): Promise<
  */
 export function resetPiiStoreHydrationForTests(): void {
   hydrationStates.clear();
+  plainPiiStorage = null;
   lastWriteRefusal = null;
   runtimeOptions = {};
   observedWriteTails.clear();

@@ -19,6 +19,18 @@ async function render(): Promise<void> {
   if (SERVER_MODE) {
     const { applyServerModeTexts } = await import('./sync/i18nOverrides')
     applyServerModeTexts(i18n)
+    // Clientes, orçamentos e histórico têm skipHydration (herança do cofre do
+    // upstream): hidratam aqui, do localStorage já preenchido pelo sync, antes
+    // do primeiro render. `./sync/rehydrate` importa os três stores, o que os
+    // registra no gate.
+    const [{ rehydratePiiStores }] = await Promise.all([
+      import('@/shared/lib/crypto/piiStoreHydration'),
+      import('./sync/rehydrate'),
+    ])
+    const outcomes = await rehydratePiiStores()
+    for (const outcome of outcomes) {
+      if (outcome.status !== 'hydrated') console.error('[sync] store não hidratou:', outcome)
+    }
   }
 
   // Initialize theme BEFORE React renders to prevent flash of wrong theme.
@@ -49,6 +61,13 @@ async function boot(): Promise<void> {
     await render()
     return
   }
+  // Sem o cofre por navegador: os três stores de PII persistem pelo
+  // manifestStorage, que o sync espelha no servidor. Antes de qualquer store.
+  const [{ enablePlainPiiPersistence }, { manifestStorage }] = await Promise.all([
+    import('@/shared/lib/crypto/piiStoreHydration'),
+    import('@/shared/lib/manifestStorage'),
+  ])
+  enablePlainPiiPersistence(manifestStorage)
   const { bootSync, startSync } = await import('./sync/engine')
   try {
     await bootSync()

@@ -24,6 +24,7 @@
  */
 
 import { guardedStorage } from "./manifestStorage.js";
+import { isPlainPiiPersistence } from "./crypto/piiStoreHydration.js";
 
 /** The three plaintext `localStorage` keys the vault replaces. */
 export const LEGACY_PII_PLAINTEXT_KEYS = [
@@ -88,7 +89,9 @@ export function detectLegacyPlaintextPii(
   read: (key: string) => string | null = (key) => guardedStorage.getItem(key),
 ): LegacyPiiPlaintextReport {
   const keys = LEGACY_PII_PLAINTEXT_KEYS.map((key) => {
-    const raw = read(key);
+    // Fork ModelInk3D: in server mode these keys ARE the live, synced store
+    // data, not residue — reporting them would offer to migrate or erase it.
+    const raw = isPlainPiiPersistence() ? null : read(key);
     const present = raw !== null;
     return {
       key,
