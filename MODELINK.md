@@ -126,3 +126,18 @@ O servidor aplica essa lista; chave fora dela → 400.
   base `17953c9`. O commit seguinte do upstream, `72e7097` ("add AI capabilities"),
   apaga o `package-lock.json` e cria árvores paralelas (`src/context`, `src/data`,
   `src/utils`) — evitar como base até o upstream estabilizar.
+- 2026-10-01: **cofre adaptado** neste branch (`rebase/upstream-beta9`, commit `5a1bafe`).
+  Com `VITE_CALC_SERVER=1`, `main.tsx` chama `enablePlainPiiPersistence(manifestStorage)`
+  antes do boot do sync: `gatedPiiPersistStorage` (em `piiStoreHydration.ts`) volta a
+  gravar os 3 stores pelo `manifestStorage`; `skipHydration` e o gate de hidratação
+  ficam como no upstream, e os stores hidratam antes do primeiro render. Cofre,
+  consentimento e migração legada não montam no modo servidor; `detectLegacyPlaintextPii`
+  não acusa as chaves vivas como resíduo (ofereceria apagar dados compartilhados).
+  Também: contraste do `SessionPanel` (teste novo do upstream). Testes: typecheck app +
+  electron, lint, vitest (falha só `electron/__tests__/crypto.selftest.test.ts`, que
+  precisa do binário do Electron — falha igual sem as mudanças), 13 testes do servidor,
+  E2E com 2 navegadores isolados contra a imagem (também sobre cópia dos dados de
+  produção): cliente criado por um usuário aparece para outro ao vivo e após reload,
+  sem IndexedDB do cofre e sem gravações extras no KV. Imagem local `modelink-calc:rebase`.
+  **Ainda não deployado.** Quando for: `docker tag modelink-calc:rebase modelink-calc:latest`
+  e seguir `deploy/README.md`; depois cada usuário recarrega a página.
